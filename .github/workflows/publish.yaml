@@ -1,4 +1,4 @@
-name: deploy
+name: publish
 
 on:
   push:
@@ -48,8 +48,8 @@ jobs:
         with:
           context: .
           push: true
-          build-args:
-            - rev: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            rev="${{ steps.meta.outputs.tags[0] }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
