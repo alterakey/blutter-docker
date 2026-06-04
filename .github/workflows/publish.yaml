@@ -38,20 +38,47 @@ jobs:
           images: |
             ghcr.io/alterakey/blutter
           tags: |
-            type=match,pattern=upstream-([0-9a-f]{7}),group=1
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Get shortrev (upstream)
+        id: upshort
+        run: |
+          tagrev=$(echo ${{ github.ref }} | sed -e 's:^refs/tags/v::')
+          echo "rev=$(git rev-parse --short $tagrev)" > "$GITHUB_OUTPUT"
 
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
+
+      - name: Check out code (upstream)
+        uses: actions/checkout@v6
+        id: up
+        with:
+          path: blutter
+          ref: ${{ steps.upshort.outputs.rev }}
+          repository: worawit/blutter
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: .done
+          key: built-${{ github.sha }}-${{ steps.up.outputs.commit }}
 
       - name: Building and pushing container
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          build-args: |
-            rev="${{ steps.meta.outputs.tags[0] }}"
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ghcr.io/alterakey/blutter:v${{ steps.upshort.outputs.rev }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=ghcr.io/alterakey/blutter:buildcache
           cache-to: type=registry,ref=ghcr.io/alterakey/blutter:buildcache,mode=max
+
+      - name: Mark as done
+        run: |
+          touch .done
