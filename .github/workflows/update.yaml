@@ -43,16 +43,42 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
+
+      - name: Check out code (upstream)
+        uses: actions/checkout@v6
+        id: up
+        with:
+          path: blutter
+          repository: worawit/blutter
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: .done
+          key: built-${{ github.sha }}-${{ steps.up.outputs.commit }}
+
+      - name: Get shortrev (upstream)
+        id: upshort
+        run: |
+          echo "rev=$(git rev-parse --short ${{ steps.up.outputs.commit }})" > "$GITHUB_OUTPUT"
 
       - name: Building and pushing container
         uses: docker/build-push-action@v5
+        if: ${{ steps.cache.cache-hit != 'true' }}
         with:
           context: .
           push: true
           tags: |
             ghcr.io/alterakey/blutter:latest
+            ghcr.io/alterakey/blutter:v${{ steps.upshort.outputs.rev }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=ghcr.io/alterakey/blutter:buildcache
           cache-to: type=registry,ref=ghcr.io/alterakey/blutter:buildcache,mode=max
+
+      - name: Mark as done
+        if: ${{ steps.cache.cache-hit != 'true' }}
+        run: |
+          touch .done
