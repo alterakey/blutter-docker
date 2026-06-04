@@ -54,5 +54,5 @@ jobs:
             ghcr.io/alterakey/blutter:latest
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
-          cache-from: type=registry,ref=alterakey/blutter:buildcache
-          cache-to: type=registry,ref=alterakey/blutter:buildcachez,mode=max
+          cache-from: type=registry,ref=ghcr.io/alterakey/blutter:buildcache
+          cache-to: type=registry,ref=ghcr.io/alterakey/blutter:buildcache,mode=max
